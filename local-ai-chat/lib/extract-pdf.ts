@@ -1,4 +1,4 @@
-const MAX_PDF_CHARS = 14000;
+import { config } from "./config";
 
 export async function extractPdfText(file: File): Promise<string> {
   const { extractText, getDocumentProxy } = await import("unpdf");
@@ -13,7 +13,7 @@ export async function extractPdfText(file: File): Promise<string> {
     .trim();
 }
 
-export function truncateDocument(text: string, limit = MAX_PDF_CHARS): string {
+export function truncateDocument(text: string, limit = config.maxPdfChars): string {
   if (text.length <= limit) return text;
   return `${text.slice(0, limit)}\n\n[Document truncated for length.]`;
 }

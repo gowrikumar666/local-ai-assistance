@@ -1,36 +1,67 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Local AI Chat
 
-## Getting Started
+A private, fully local chat app built with Next.js and [Ollama](https://ollama.com). Nothing leaves your machine.
 
-First, run the development server:
+- Streaming responses with a Stop button
+- Markdown rendering (lists, tables, code blocks with copy)
+- Upload a PDF and ask questions about it
+- Conversations stored in a local SQLite database
+
+## Requirements
+
+- Node.js 20+
+- [Ollama](https://ollama.com/download) installed and running
+
+## Setup
 
 ```bash
+Before running the project, make sure the following are installed:
+Node.js 22 LTS or a compatible Node.js version
+npm
+Python 3.10+
+Visual Studio Build Tools with the Desktop development with C++ workload
+ollama pull llama3        # or any model you prefer
+npm install
+cp .env.example .env.local   # optional, see Configuration
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open <http://localhost:3000>. If Ollama isn't running, the app tells you (`ollama serve`).
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Configuration
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+All settings are optional environment variables (see [`.env.example`](.env.example)):
 
-## Learn More
+| Variable | Default | Purpose |
+| --- | --- | --- |
+| `OLLAMA_URL` | `http://localhost:11434` | Ollama server address |
+| `OLLAMA_MODEL` | `llama3` | Model used for chat |
+| `OLLAMA_NUM_CTX` | `8192` | Context window (tokens) |
+| `OLLAMA_KEEP_ALIVE` | `30m` | How long the model stays loaded |
+| `OLLAMA_IDLE_TIMEOUT_MS` | `120000` | Abort if Ollama goes silent this long |
+| `CHAT_HISTORY_LIMIT` | `20` | Messages sent to the model per turn |
+| `MAX_PDF_MB` / `MAX_PDF_CHARS` | `10` / `14000` | PDF size and text limits |
+| `DB_PATH` | `data/chat.db` | SQLite file location |
 
-To learn more about Next.js, take a look at the following resources:
+## Data
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+Chats live in `data/chat.db` (git-ignored). If a legacy `chats.json` exists in the project root, it is imported automatically on first start and renamed to `chats.json.migrated`.
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## Project layout
 
-## Deploy on Vercel
+```
+app/
+  api/chat/      streaming chat endpoint (talks to Ollama)
+  api/chats/     list / create / delete conversations
+  components/    UI components
+  hooks/         useChatSession (client state + streaming)
+lib/
+  config.ts      env-based settings
+  db.ts          SQLite connection, schema, legacy import
+  chat-store.ts  queries
+  extract-pdf.ts PDF text extraction
+```
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## Scripts
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+`npm run dev` · `npm run build` · `npm start` · `npm run lint`

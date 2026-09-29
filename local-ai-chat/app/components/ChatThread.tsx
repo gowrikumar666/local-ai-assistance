@@ -23,9 +23,15 @@ export const ChatThread = memo(function ChatThread({
 }: Props) {
   const endRef = useRef<HTMLDivElement>(null);
 
+  const last = messages[messages.length - 1];
+  const tailLength = last?.content.length ?? 0;
+  // Show the dots only while waiting for the first token of a reply.
+  const showTyping = isSending && last?.role !== "assistant";
+
   useEffect(() => {
-    endRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
-  }, [messages.length, isSending]);
+    // Instant while tokens stream in (smooth scrolling lags behind fast updates).
+    endRef.current?.scrollIntoView({ behavior: isSending ? "auto" : "smooth", block: "end" });
+  }, [messages.length, tailLength, isSending]);
 
   if (isBootstrapping || isLoading) {
     return <MessageSkeleton />;
@@ -50,7 +56,7 @@ export const ChatThread = memo(function ChatThread({
       ) : (
         messages.map((message) => <ChatMessage key={message.id} message={message} />)
       )}
-      {isSending && <TypingIndicator />}
+      {showTyping && <TypingIndicator />}
       <div ref={endRef} />
     </div>
   );

@@ -9,7 +9,7 @@ import { ChatHeader } from "./ChatHeader";
 import { ChatThread } from "./ChatThread";
 import { ChatComposer } from "./ChatComposer";
 
-export default function ChatApp() {
+export default function ChatApp({ modelName }: { modelName: string }) {
   const {
     chats,
     activeChat,
@@ -30,6 +30,7 @@ export default function ChatApp() {
     createNewChat,
     deleteChat,
     handleSend,
+    stopSending,
   } = useChatSession();
 
   const sidebar = (
@@ -114,6 +115,8 @@ export default function ChatApp() {
             onChange={setInput}
             onFileChange={selectPendingFile}
             onSend={handleSend}
+            onStop={stopSending}
+            modelName={modelName}
           />
         </Box>
       </Box>

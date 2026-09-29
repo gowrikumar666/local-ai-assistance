@@ -47,10 +47,15 @@ export function useChatSession() {
   const skipFetchRef = useRef<string | null>(null);
   const sendingRef = useRef(false);
   const abortRef = useRef<AbortController | null>(null);
+  const sendAbortRef = useRef<AbortController | null>(null);
   const pendingFileRef = useRef<File | null>(null);
-  pendingFileRef.current = pendingFile;
   const inputRef = useRef(input);
-  inputRef.current = input;
+
+  // Keep refs in sync so handleSend always reads the latest values.
+  useEffect(() => {
+    pendingFileRef.current = pendingFile;
+    inputRef.current = input;
+  }, [pendingFile, input]);
 
   const selectPendingFile = useCallback((file: File | null) => {
     if (!file) {
@@ -87,7 +92,6 @@ export function useChatSession() {
   );
 
   const fetchChats = useCallback(async () => {
-    setIsChatsLoading(true);
     try {
       const response = await fetch("/api/chats");
       const data = await response.json();
@@ -145,6 +149,8 @@ export function useChatSession() {
   }, []);
 
   useEffect(() => {
+    // Initial data load on mount; state is only set after the fetch resolves.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     void fetchChats();
   }, [fetchChats]);
 
@@ -248,37 +254,104 @@ export function useChatSession() {
         ),
       );
 
+      const controller = new AbortController();
+      sendAbortRef.current = controller;
+      const chatId = currentChatId!;
+
       let response: Response;
       if (file) {
         const form = new FormData();
-        form.append("chatId", currentChatId!);
+        form.append("chatId", chatId);
         form.append("message", messageText);
         form.append("file", file);
-        response = await fetch("/api/chat", { method: "POST", body: form });
+        response = await fetch("/api/chat", { method: "POST", body: form, signal: controller.signal });
       } else {
         response = await fetch("/api/chat", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ chatId: currentChatId, message: messageText }),
+          body: JSON.stringify({ chatId, message: messageText }),
+          signal: controller.signal,
         });
       }
 
-      const data = await response.json();
-      if (!response.ok) throw new Error(data.error || "AI server error");
+      if (!response.ok) {
+        const data = await response.json().catch(() => ({}));
+        throw new Error(data.error || "AI server error");
+      }
+      if (!response.body) throw new Error("The server did not return a response stream.");
 
-      const assistantMessage: ChatMessage = {
-        id: `local-assistant-${Date.now()}`,
-        chatId: currentChatId,
-        role: "assistant",
-        content: data.content,
-        createdAt: new Date().toISOString(),
+      // Tokens are batched into one state update per animation frame.
+      const assistantId = `local-assistant-${Date.now()}`;
+      let pending = "";
+      let frame = 0;
+
+      const appendToAssistant = (text: string) => {
+        setMessagesByChat((prev) => {
+          const list = prev[chatId] ?? [];
+          const last = list[list.length - 1];
+          if (last && last.id === assistantId) {
+            return { ...prev, [chatId]: [...list.slice(0, -1), { ...last, content: last.content + text }] };
+          }
+          const created: ChatMessage = {
+            id: assistantId,
+            chatId,
+            role: "assistant",
+            content: text,
+            createdAt: new Date().toISOString(),
+          };
+          return { ...prev, [chatId]: [...list, created] };
+        });
       };
 
-      setMessagesByChat((prev) => ({
-        ...prev,
-        [currentChatId!]: [...(prev[currentChatId!] ?? []), assistantMessage],
-      }));
+      const flush = () => {
+        frame = 0;
+        if (!pending) return;
+        const text = pending;
+        pending = "";
+        appendToAssistant(text);
+      };
+
+      const result: { error: string | null } = { error: null };
+      const handleLine = (line: string) => {
+        if (!line.trim()) return;
+        let event: { type: string; content?: string; message?: string };
+        try {
+          event = JSON.parse(line);
+        } catch {
+          return;
+        }
+        if (event.type === "token" && event.content) {
+          pending += event.content;
+          if (!frame) frame = requestAnimationFrame(flush);
+        } else if (event.type === "error") {
+          result.error = event.message || "AI server error";
+        }
+      };
+
+      const reader = response.body.getReader();
+      const decoder = new TextDecoder();
+      let buffer = "";
+      try {
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          buffer += decoder.decode(value, { stream: true });
+          let newline: number;
+          while ((newline = buffer.indexOf("\n")) >= 0) {
+            handleLine(buffer.slice(0, newline));
+            buffer = buffer.slice(newline + 1);
+          }
+        }
+        handleLine(buffer);
+      } finally {
+        if (frame) cancelAnimationFrame(frame);
+        flush();
+      }
+
+      if (result.error) throw new Error(result.error);
     } catch (sendError) {
+      // Pressing Stop aborts the request on purpose; the partial reply stays visible.
+      if (sendError instanceof DOMException && sendError.name === "AbortError") return;
       const message = sendError instanceof Error ? sendError.message : "Something went wrong.";
       setError(message);
       if (currentChatId) {
@@ -297,10 +370,22 @@ export function useChatSession() {
         }));
       }
     } finally {
+      sendAbortRef.current = null;
       sendingRef.current = false;
       setIsSending(false);
+      if (currentChatId) {
+        // Most recently used conversation goes to the top of the sidebar.
+        setChats((prev) => {
+          const chat = prev.find((item) => item.id === currentChatId);
+          return chat ? [chat, ...prev.filter((item) => item.id !== currentChatId)] : prev;
+        });
+      }
     }
   }, [activeChatId]);
+
+  const stopSending = useCallback(() => {
+    sendAbortRef.current?.abort();
+  }, []);
 
   return {
     chats,
@@ -322,5 +407,6 @@ export function useChatSession() {
     createNewChat,
     deleteChat,
     handleSend,
+    stopSending,
   };
 }

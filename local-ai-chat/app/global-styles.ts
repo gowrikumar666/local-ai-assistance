@@ -155,6 +155,71 @@ button, input, textarea { font: inherit; }
   .chat-bubble__text { font-size: 15px; line-height: 1.7; }
 }
 
+.chat-markdown { white-space: normal; }
+.chat-markdown > :first-child { margin-top: 0; }
+.chat-markdown > :last-child { margin-bottom: 0; }
+.chat-markdown p { margin: 0 0 0.75em; }
+.chat-markdown h1, .chat-markdown h2, .chat-markdown h3, .chat-markdown h4 {
+  margin: 1.1em 0 0.45em;
+  line-height: 1.3;
+}
+.chat-markdown h1 { font-size: 1.3em; }
+.chat-markdown h2 { font-size: 1.15em; }
+.chat-markdown h3, .chat-markdown h4 { font-size: 1.02em; }
+.chat-markdown ul, .chat-markdown ol { margin: 0 0 0.75em; padding-left: 1.4em; }
+.chat-markdown li { margin: 0.2em 0; }
+.chat-markdown li > p { margin: 0; }
+.chat-markdown a { color: #d9534f; text-decoration: underline; }
+.chat-markdown blockquote {
+  margin: 0 0 0.75em;
+  padding: 0.1em 0.9em;
+  border-left: 3px solid #e2e8f0;
+  color: #475569;
+}
+.chat-markdown hr { border: 0; border-top: 1px solid #e2e8f0; margin: 1em 0; }
+.chat-markdown code {
+  padding: 0.12em 0.4em;
+  border-radius: 0.35rem;
+  background: #f1f5f9;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 0.88em;
+}
+.md-code {
+  position: relative;
+  margin: 0 0 0.85em;
+  border-radius: 0.75rem;
+  background: #0f172a;
+  overflow: hidden;
+}
+.md-code pre {
+  margin: 0;
+  padding: 2.3rem 1rem 0.9rem;
+  overflow-x: auto;
+  color: #e2e8f0;
+  line-height: 1.55;
+}
+.md-code pre code { padding: 0; background: none; color: inherit; font-size: 13px; }
+.md-code__copy {
+  position: absolute;
+  top: 0.4rem;
+  right: 0.5rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.2rem 0.5rem;
+  border: 0;
+  border-radius: 0.4rem;
+  background: rgba(148, 163, 184, 0.18);
+  color: #cbd5e1;
+  font-size: 11px;
+  cursor: pointer;
+}
+.md-code__copy:hover { background: rgba(148, 163, 184, 0.32); }
+.md-table { margin: 0 0 0.85em; overflow-x: auto; }
+.md-table table { border-collapse: collapse; font-size: 0.93em; }
+.md-table th, .md-table td { padding: 0.4rem 0.7rem; border: 1px solid #e2e8f0; text-align: left; }
+.md-table th { background: #f8fafc; }
+
 .chat-welcome {
   display: flex;
   flex-direction: column;
