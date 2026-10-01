@@ -41,7 +41,7 @@ export const ChatListItem = memo(function ChatListItem({ chat, active, onSelect,
           color: "#769098",
           p: 0.5,
           opacity: { xs: 1, md: 0 },
-          ".group:hover &": { opacity: 1 },
+          ".chat-list-item:hover &": { opacity: 1 },
           "&:hover": { color: "#ef6f61" },
         }}
       >
