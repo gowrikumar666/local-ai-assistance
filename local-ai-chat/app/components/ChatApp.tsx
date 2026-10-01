@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { AlertCircle } from "lucide-react";
 import { Box, CssBaseline, Drawer, ThemeProvider } from "@mui/material";
 import { appTheme } from "../theme";
@@ -10,6 +11,7 @@ import { ChatThread } from "./ChatThread";
 import { ChatComposer } from "./ChatComposer";
 
 export default function ChatApp({ modelName }: { modelName: string }) {
+  const [desktopSidebarOpen, setDesktopSidebarOpen] = useState(true);
   const {
     chats,
     activeChat,
@@ -59,7 +61,15 @@ export default function ChatApp({ modelName }: { modelName: string }) {
       >
         <Box
           component="nav"
-          sx={{ width: { md: 288 }, flexShrink: 0, minHeight: 0, display: { xs: "none", md: "block" } }}
+          aria-label="Chat history"
+          sx={{
+            width: { xs: 0, md: desktopSidebarOpen ? 288 : 0 },
+            flexShrink: 0,
+            minHeight: 0,
+            overflow: "hidden",
+            display: { xs: "none", md: "block" },
+            transition: "width 180ms ease",
+          }}
         >
           {sidebar}
         </Box>
@@ -96,7 +106,12 @@ export default function ChatApp({ modelName }: { modelName: string }) {
             </div>
           )}
 
-          <ChatHeader chat={activeChat} onOpenSidebar={() => setMobileNavOpen(true)} />
+          <ChatHeader
+            chat={activeChat}
+            desktopSidebarOpen={desktopSidebarOpen}
+            onOpenMobileSidebar={() => setMobileNavOpen(true)}
+            onToggleDesktopSidebar={() => setDesktopSidebarOpen((open) => !open)}
+          />
 
           <div className="chat-thread-scroll">
             <ChatThread
